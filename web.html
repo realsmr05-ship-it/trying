@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>LVU Heart - Interactive Experience ❤️</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: black;
+            overflow-x: hidden;
+            font-family: 'Arial', sans-serif;
+            min-height: 100vh;
+        }
+
+        /* Starfield Background - Hidden initially */
+        .starfield {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+            background: black;
+            opacity: 0;
+            transition: opacity 1.5s ease;
+        }
+
+        .starfield.active {
+            opacity: 1;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        /* Heart Container */
+        .heart-container {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            transition: transform 0.3s ease;
+        }
+
+        .heart-shape {
+            position: relative;
+            width: 380px;
+            height: 380px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .heart-shape:active {
+            transform: scale(0.98);
+        }
+
+        /* LVU Words Grid inside Heart */
+        .heart-words {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .lvu-word {
+            position: absolute;
+            color: #ff3366;
+            font-weight: bold;
+            text-shadow: 0 0 5px #ff3366, 0 0 10px #ff6699;
+            pointer-events: none;
+            white-space: nowrap;
+            font-family: monospace;
+            animation: floatWord 3s ease-in-out infinite;
+        }
+
+        @keyframes floatWord {
+            0%, 100% {
+                transform: translateY(0px) translateX(0px);
+                opacity: 0.6;
+            }
+            50% {
+                transform: translateY(-3px) translateX(2px);
+                opacity: 1;
+            }
+        }
+
+        /* Different animation delays for each word */
+        .lvu-word:nth-child(odd) {
+            animation-duration: 2.5s;
+        }
+        .lvu-word:nth-child(even) {
+            animation-duration: 3.5s;
+        }
+
+        /* Photo Gallery Modal */
+        .gallery-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            backdrop-filter: blur(10px);
+        }
+
+        .gallery-overlay.active {
+            display: flex;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .photo-container {
+            position: relative;
+            width: 85%;
+            max-width: 350px;
+            height: 450px;
+            overflow: hidden;
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(255, 51, 102, 0.5);
+            background: #1a1a1a;
+        }
+
+        .photo-slider {
+            display: flex;
+            transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            height: 100%;
+            cursor: grab;
+        }
+
+        .photo-slider:active {
+            cursor: grabbing;
+        }
+
+        .photo-slide {
+            min-width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .photo-slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-caption {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-family: monospace;
+            font-size: 16px;
+        }
+
+        /* Navigation dots */
+        .gallery-dots {
+            display: flex;
+            gap: 12px;
+            margin-top: 25px;
+            justify-content: center;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .dot.active {
+            background: #ff3366;
+            width: 25px;
+            border-radius: 4px;
+        }
+
+        /* Close button */
+        .close-gallery {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 51, 102, 0.8);
+            border: none;
+            color: white;
+            font-size: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 1001;
+            transition: all 0.3s ease;
+            font-family: monospace;
+        }
+
+        .close-gallery:active {
+            transform: scale(0.9);
+            background: #ff3366;
+        }
+
+        /* Swipe hint */
+        .swipe-hint {
+            color: white;
+            text-align: center;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        /* Scroll hint */
+        .scroll-hint {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 12px;
+            z-index: 20;
+            background: rgba(0,0,0,0.5);
+            padding: 6px 12px;
+            border-radius: 20px;
+            pointer-events: none;
+            font-family: monospace;
+            transition: opacity 0.5s ease;
+        }
+
+        @media (max-width: 768px) {
+            .heart-shape {
+                width: 300px;
+                height: 300px;
+            }
+            .photo-container {
+                width: 90%;
+                height: 400px;
+            }
+        }
+
+        /* Floating particles effect */
+        .particle {
+            position: fixed;
+            pointer-events: none;
+            z-index: 200;
+            border-radius: 50%;
+            animation: particleFloat 1.5s ease-out forwards;
+        }
+
+        @keyframes particleFloat {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(0);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="starfield" id="starfield"></div>
+
+<div class="heart-container" id="heartContainer">
+    <div class="heart-shape" id="heartShape">
+        <div class="heart-words" id="heartWords"></div>
+    </div>
+</div>
+
+<div class="scroll-hint" id="scrollHint">✨ Scroll down to see the LVU Heart ✨</div>
+
+<!-- Photo Gallery Modal -->
+<div class="gallery-overlay" id="galleryOverlay">
+    <button class="close-gallery" id="closeGallery">✕</button>
+    <div class="photo-container">
+        <div class="photo-slider" id="photoSlider">
+            <!-- Photos will be inserted here -->
+        </div>
+    </div>
+    <div class="gallery-dots" id="galleryDots"></div>
+    <div class="swipe-hint">👆 Swipe up/down to browse photos 👇</div>
+</div>
+
+<script>
+    // Heart shape parametric equation
+    function getHeartPoint(t, scale, centerX, centerY) {
+        const x = 16 * Math.pow(Math.sin(t), 3);
+        const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t);
+        return {
+            x: centerX + x * scale,
+            y: centerY - y * scale
+        };
+    }
+
+    // Create stars (initially hidden)
+    function createStars() {
+        const starfield = document.getElementById('starfield');
+        const starCount = 400;
+        
+        for (let i = 0; i < starCount; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            const size = Math.random() * 3 + 1;
+            star.style.width = size + 'px';
+            star.style.height = size + 'px';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.opacity = Math.random() * 0.5 + 0.1;
+            starfield.appendChild(star);
+        }
+    }
+
+    // Show stars with transition
+    function activateStars() {
+        const starfield = document.getElementById('starfield');
+        starfield.classList.add('active');
+        
+        // Twinkle animation for stars
+        const stars = document.querySelectorAll('.star');
+        stars.forEach(star => {
+            const twinkleDuration = Math.random() * 3 + 1;
+            star.style.animation = `twinkle ${twinkleDuration}s ease-in-out infinite alternate`;
+        });
+        
+        // Add twinkle keyframes dynamically
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes twinkle {
+                0% { opacity: 0.2; }
+                100% { opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Create LVU words in heart shape with continuous movement
+    function createHeartWords() {
+        const container = document.getElementById('heartWords');
+        const heartShape = document.getElementById('heartShape');
+        const rect = heartShape.getBoundingClientRect();
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        const scale = Math.min(rect.width, rect.height) / 32;
+        
+        const wordCount = 250;
+        
+        for (let i = 0; i < wordCount; i++) {
+            const t = (i / wordCount) * Math.PI * 2;
+            const point = getHeartPoint(t, scale, centerX, centerY);
+            
+            // Add slight random offset for thickness
+            const offsetX = (Math.random() - 0.5) * 6;
+            const offsetY = (Math.random() - 0.5) * 6;
+            
+            const word = document.createElement('div');
+            word.className = 'lvu-word';
+            word.textContent = 'LVU';
+            word.style.left = (point.x + offsetX) + 'px';
+            word.style.top = (point.y + offsetY) + 'px';
+            word.style.fontSize = (Math.random() * 10 + 14) + 'px';
+            word.style.opacity = Math.random() * 0.6 + 0.4;
+            word.style.animationDelay = (Math.random() * 2) + 's';
+            
+            container.appendChild(word);
+        }
+        
+        // Add inner heart words
+        for (let i = 0; i < 120; i++) {
+            const t = Math.random() * Math.PI * 2;
+            const point = getHeartPoint(t, scale, centerX, centerY);
+            const innerScale = 0.65;
+            const innerX = centerX + (point.x - centerX) * innerScale;
+            const innerY = centerY + (point.y - centerY) * innerScale;
+            
+            const word = document.createElement('div');
+            word.className = 'lvu-word';
+            word.textContent = 'LVU';
+            word.style.left = innerX + 'px';
+            word.style.top = innerY + 'px';
+            word.style.fontSize = (Math.random() * 8 + 12) + 'px';
+            word.style.opacity = Math.random() * 0.5 + 0.3;
+            word.style.color = '#ff6699';
+            word.style.animationDelay = (Math.random() * 2) + 's';
+            container.appendChild(word);
+        }
+    }
+
+    // Photo gallery data (products/memories)
+    const photoGallery = [
+        { url: 'https://picsum.photos/id/20/400/500', title: '✨ Special Moment ✨', desc: 'Beautiful beginning' },
+        { url: 'https://picsum.photos/id/26/400/500', title: '💝 Venice Dreams 💝', desc: 'Romantic getaway' },
+        { url: 'https://picsum.photos/id/28/400/500', title: '🌲 Forest Magic 🌲', desc: 'Nature adventure' },
+        { url: 'https://picsum.photos/id/29/400/500', title: '🏛️ City Lights 🏛️', desc: 'Urban exploration' },
+        { url: 'https://picsum.photos/id/30/400/500', title: '☕ Coffee Love ☕', desc: 'Warm moments' },
+        { url: 'https://picsum.photos/id/42/400/500', title: '🎵 Melody 🎵', desc: 'Music in our hearts' },
+        { url: 'https://picsum.photos/id/55/400/500', title: '🎸 Guitar Days 🎸', desc: 'Strumming memories' },
+        { url: 'https://picsum.photos/id/96/400/500', title: '⛰️ Mountain High ⛰️', desc: 'Reaching peaks' },
+        { url: 'https://picsum.photos/id/169/400/500', title: '🌅 Sunset Love 🌅', desc: 'Golden hours' },
+        { url: 'https://picsum.photos/id/155/400/500', title: '🌸 Cherry Blossom 🌸', desc: 'Spring memories' }
+    ];
+
+    let currentPhotoIndex = 0;
+    let touchStartY = 0;
+    let currentTranslate = 0;
+    let isDragging = false;
+
+    // Initialize photo gallery
+    function initGallery() {
+        const slider = document.getElementById('photoSlider');
+        const dotsContainer = document.getElementById('galleryDots');
+        
+        // Clear existing
+        slider.innerHTML = '';
+        dotsContainer.innerHTML = '';
+        
+        // Create slides
+        photoGallery.forEach((photo, index) => {
+            const slide = document.createElement('div');
+            slide.className = 'photo-slide';
+            slide.innerHTML = `
+                <img src="${photo.url}" alt="${photo.title}" loading="lazy">
+                <div class="photo-caption">
+                    <strong>${photo.title}</strong><br>
+                    <small>${photo.desc}</small>
+                </div>
+            `;
+            slider.appendChild(slide);
+            
+            // Create dot
+            const dot = document.createElement('div');
+            dot.className = 'dot';
+            if (index === 0) dot.classList.add('active');
+            dot.addEventListener('click', () => goToPhoto(index));
+            dotsContainer.appendChild(dot);
+        });
+        
+        // Touch events for swiping (vertical swipe)
+        slider.addEventListener('touchstart', handleTouchStart);
+        slider.addEventListener('touchmove', handleTouchMove);
+        slider.addEventListener('touchend', handleTouchEnd);
+        
+        // Mouse events for desktop
+        slider.addEventListener('mousedown', handleMouseDown);
+        slider.addEventListener('mousemove', handleMouseMove);
+        slider.addEventListener('mouseup', handleMouseUp);
+    }
+    
+    function handleTouchStart(e) {
+        touchStartY = e.touches[0].clientY;
+        isDragging = true;
+        currentTranslate = -currentPhotoIndex * 100;
+        document.getElementById('photoSlider').style.transition = 'none';
+    }
+    
+    function handleTouchMove(e) {
+        if (!isDragging) return;
+        const currentY = e.touches[0].clientY;
+        const diff = currentY - touchStartY;
+        const movePercent = (diff / window.innerHeight) * 100;
+        let newTranslate = currentTranslate + movePercent;
+        
+        // Boundary limits
+        newTranslate = Math.min(0, Math.max(newTranslate, -(photoGallery.length - 1) * 100));
+        document.getElementById('photoSlider').style.transform = `translateY(${newTranslate}%)`;
+    }
+    
+    function handleTouchEnd(e) {
+        if (!isDragging) return;
+        isDragging = false;
+        
+        const endY = e.changedTouches[0].clientY;
+        const diff = endY - touchStartY;
+        const swipeThreshold = 50;
+        
+        if (Math.abs(diff) > swipeThreshold) {
+            if (diff > 0 && currentPhotoIndex > 0) {
+                // Swipe down - previous photo
+                currentPhotoIndex--;
+            } else if (diff < 0 && currentPhotoIndex < photoGallery.length - 1) {
+                // Swipe up - next photo
+                currentPhotoIndex++;
+            }
+        }
+        
+        goToPhoto(currentPhotoIndex);
+    }
+    
+    function handleMouseDown(e) {
+        touchStartY = e.clientY;
+        isDragging = true;
+        currentTranslate = -currentPhotoIndex * 100;
+        document.getElementById('photoSlider').style.transition = 'none';
+        e.preventDefault();
+    }
+    
+    function handleMouseMove(e) {
+        if (!isDragging) return;
+        const currentY = e.clientY;
+        const diff = currentY - touchStartY;
+        const movePercent = (diff / window.innerHeight) * 100;
+        let newTranslate = currentTranslate + movePercent;
+        newTranslate = Math.min(0, Math.max(newTranslate, -(photoGallery.length - 1) * 100));
+        document.getElementById('photoSlider').style.transform = `translateY(${newTranslate}%)`;
+    }
+    
+    function handleMouseUp(e) {
+        if (!isDragging) return;
+        isDragging = false;
+        
+        const endY = e.clientY;
+        const diff = endY - touchStartY;
+        const swipeThreshold = 50;
+        
+        if (Math.abs(diff) > swipeThreshold) {
+            if (diff > 0 && currentPhotoIndex > 0) {
+                currentPhotoIndex--;
+            } else if (diff < 0 && currentPhotoIndex < photoGallery.length - 1) {
+                currentPhotoIndex++;
+            }
+        }
+        
+        goToPhoto(currentPhotoIndex);
+    }
+    
+    function goToPhoto(index) {
+        currentPhotoIndex = index;
+        const slider = document.getElementById('photoSlider');
+        slider.style.transition = 'transform 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1)';
+        slider.style.transform = `translateY(-${index * 100}%)`;
+        
+        // Update dots
+        const dots = document.querySelectorAll('.dot');
+        dots.forEach((dot, i) => {
+            if (i === index) {
+                dot.classList.add('active');
+            } else {
+                dot.classList.remove('active');
+            }
+        });
+    }
+    
+    // Particle effect on click
+    function createParticles(x, y) {
+        for (let i = 0; i < 30; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            const size = Math.random() * 8 + 2;
+            particle.style.width = size + 'px';
+            particle.style.height = size + 'px';
+            particle.style.left = (x + (Math.random() - 0.5) * 40) + 'px';
+            particle.style.top = (y + (Math.random() - 0.5) * 40) + 'px';
+            particle.style.backgroundColor = `hsl(${Math.random() * 60 + 330}, 100%, 65%)`;
+            document.body.appendChild(particle);
+            
+            setTimeout(() => particle.remove(), 1500);
+        }
+    }
+    
+    // Explosion and show gallery
+    function explodeAndShowGallery() {
+        // Activate stars background
+        activateStars();
+        
+        // Create particle burst at heart center
+        const heartRect = document.getElementById('heartShape').getBoundingClientRect();
+        const centerX = heartRect.left + heartRect.width / 2;
+        const centerY = heartRect.top + heartRect.height / 2;
+        createParticles(centerX, centerY);
+        
+        // Animate LVU words floating away
+        const words = document.querySelectorAll('.lvu-word');
+        words.forEach((word, index) => {
+            setTimeout(() => {
+                const rect = word.getBoundingClientRect();
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 200 + Math.random() * 300;
+                const dx = Math.cos(angle) * distance;
+                const dy = Math.sin(angle) * distance;
+                
+                word.style.transition = 'all 1s ease-out';
+                word.style.transform = `translate(${dx}px, ${dy}px)`;
+                word.style.opacity = '0';
+            }, index * 5);
+        });
+        
+        // Show gallery after short delay
+        setTimeout(() => {
+            const gallery = document.getElementById('galleryOverlay');
+            gallery.classList.add('active');
+            initGallery();
+            
+            // Add floating stars effect in background
+            for (let i = 0; i < 100; i++) {
+                setTimeout(() => {
+                    const star = document.createElement('div');
+                    star.className = 'star';
+                    star.style.width = Math.random() * 4 + 'px';
+                    star.style.height = star.style.width;
+                    star.style.left = Math.random() * 100 + '%';
+                    star.style.top = Math.random() * 100 + '%';
+                    star.style.opacity = Math.random() * 0.8;
+                    star.style.position = 'fixed';
+                    star.style.backgroundColor = 'white';
+                    star.style.borderRadius = '50%';
+                    star.style.pointerEvents = 'none';
+                    star.style.zIndex = '999';
+                    document.body.appendChild(star);
+                    
+                    setTimeout(() => star.remove(), 3000);
+                }, i * 20);
+            }
+        }, 800);
+        
+        // Hide scroll hint
+        const scrollHint = document.getElementById('scrollHint');
+        scrollHint.style.opacity = '0';
+        setTimeout(() => scrollHint.style.display = 'none', 500);
+    }
+    
+    // Initialize everything
+    createStars();
+    
+    window.addEventListener('load', () => {
+        createHeartWords();
+        
+        // Update positions on resize
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                document.getElementById('heartWords').innerHTML = '';
+                createHeartWords();
+            }, 250);
+        });
+        
+        // Click handler for heart
+        const heartShape = document.getElementById('heartShape');
+        let exploded = false;
+        
+        heartShape.addEventListener('click', (e) => {
+            if (!exploded) {
+                exploded = true;
+                e.stopPropagation();
+                explodeAndShowGallery();
+            }
+        });
+        
+        // Close gallery
+        const closeGallery = document.getElementById('closeGallery');
+        closeGallery.addEventListener('click', () => {
+            const gallery = document.getElementById('galleryOverlay');
+            gallery.classList.remove('active');
+        });
+    });
+    
+    // Parallax scroll effect
+    window.addEventListener('scroll', () => {
+        const scrolled = window.pageYOffset;
+        const heartContainer = document.getElementById('heartContainer');
+        if (heartContainer) {
+            heartContainer.style.transform = `translateY(${scrolled * 0.3}px)`;
+        }
+    });
+</script>
+
+</body>
+</html>
